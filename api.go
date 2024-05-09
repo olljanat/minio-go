@@ -100,6 +100,7 @@ type Client struct {
 	healthStatus int32
 
 	trailingHeaderSupport bool
+	customUserAgent       string
 }
 
 // Options for New method
@@ -124,6 +125,9 @@ type Options struct {
 	// Custom hash routines. Leave nil to use standard.
 	CustomMD5    func() md5simd.Hasher
 	CustomSHA256 func() md5simd.Hasher
+
+	// Custom user agent. Leave nil to use standard.
+	CustomUserAgent string
 }
 
 // Global constants.
@@ -278,6 +282,11 @@ func privateNew(endpoint string, opts *Options) (*Client, error) {
 
 	// healthcheck is not initialized
 	clnt.healthStatus = unknown
+
+	// Set custom user agent if requested
+	if opts.CustomUserAgent != "" {
+		clnt.customUserAgent = opts.CustomUserAgent
+	}
 
 	// Return.
 	return clnt, nil
@@ -917,6 +926,10 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 
 // set User agent.
 func (c *Client) setUserAgent(req *http.Request) {
+	if c.customUserAgent != "" {
+		req.Header.Set("User-Agent", c.customUserAgent)
+		return
+	}
 	req.Header.Set("User-Agent", libraryUserAgent)
 	if c.appInfo.appName != "" && c.appInfo.appVersion != "" {
 		req.Header.Set("User-Agent", libraryUserAgent+" "+c.appInfo.appName+"/"+c.appInfo.appVersion)
